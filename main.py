@@ -1,32 +1,21 @@
-from flask import Flask
-import threading
-import telebot
+import asyncio
 import os
 
-# --------- Web Server برای آنلاین نگه داشتن ربات ---------
-app = Flask('')
+from aiogram import Bot, Dispatcher
+from aiogram.filters import CommandStart
+from aiogram.types import Message
 
-@app.route('/')
-def home():
-    return "Bot is running!"
+TOKEN = os.environ["TOKEN"]
 
-def run():
-    app.run(host='0.0.0.0', port=10000)
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
 
-def keep_alive():
-    t = threading.Thread(target=run)
-    t.start()
+@dp.message(CommandStart())
+async def start_handler(message: Message):
+    await message.answer("سلام! ربات با موفقیت روی Render اجرا شد ✅")
 
-# --------- ربات تلگرام ---------
-TOKEN = os.environ['TOKEN']  # توکن از Environment Variable خوانده می‌شود
-bot = telebot.TeleBot(TOKEN)
+async def main():
+    await dp.start_polling(bot)
 
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, "سلام! من ربات تو هستم!")
-
-# فعال کردن Web Server
-keep_alive()
-
-# شروع ربات
-bot.polling(none_stop=True)
+if __name__ == "__main__":
+    asyncio.run(main())
