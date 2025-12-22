@@ -17,6 +17,26 @@ async def start_handler(message: Message):
     await message.answer("سلام! ربات با موفقیت روی Render اجرا شد ✅")
 
 
+# welcome new members
+@dp.message()
+async def welcome_new_member(message: Message):
+    if message.new_chat_members:
+        for user in message.new_chat_members:
+            await message.answer(
+                f"👋 خوش آمدی {user.full_name}!"
+            )
+
+
+# goodbye message
+@dp.message()
+async def goodbye_member(message: Message):
+    if message.left_chat_member:
+        user = message.left_chat_member
+        await message.answer(
+            f"👋 خداحافظ {user.full_name}"
+        )
+
+
 # delete links in groups
 @dp.message()
 async def delete_links(message: Message):
