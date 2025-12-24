@@ -89,6 +89,11 @@ async def goodbye_handler(message: Message):
     user = message.left_chat_member
     await message.answer(f"👋 خداحافظ {user.full_name}")
 
+@dp.message(F.text == "/id")
+async def group_id_handler(message: Message):
+    await message.answer(f"Group ID: {message.chat.id}")
+
+
 
 @dp.message(F.chat.type.in_(["group", "supergroup"]))
 async def delete_links(message: Message):
