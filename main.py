@@ -3,6 +3,7 @@ import re
 import asyncio
 from datetime import datetime, time, timedelta
 from aiohttp import web
+from aiogram.filters import Command
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart
@@ -81,6 +82,53 @@ async def scheduler():
 @dp.message(CommandStart())
 async def start_handler(message: Message):
     await message.answer("ربات آنلاین است ✅")
+
+@dp.message(Command(commands=["پاکسازی", "purge"]))
+async def purge_messages(message: Message):
+    # فقط در گروه
+    if message.chat.type not in ["group", "supergroup"]:
+        return
+
+    # فقط ادمین
+    member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+    if member.status not in ["administrator", "creator"]:
+        await message.reply("⛔ فقط مدیران می‌توانند پاکسازی انجام دهند.")
+        return
+
+    # گرفتن عدد
+    args = message.text.split()
+    if len(args) != 2 or not args[1].isdigit():
+        await message.reply("❗️فرمت درست:\n/پاکسازی 50")
+        return
+
+    count = int(args[1])
+
+    # محدودیت تلگرام
+    if count < 1:
+        return
+    if count > 100:
+        count = 100
+
+    deleted = 0
+
+    # حذف پیام دستور هم حساب می‌شود
+    async for msg in bot.get_chat_history(
+        chat_id=message.chat.id,
+        limit=count + 1
+    ):
+        try:
+            await bot.delete_message(message.chat.id, msg.message_id)
+            deleted += 1
+        except:
+            pass
+
+    # پیام تأیید کوتاه (اختیاری)
+    confirm = await message.answer(f"🧹 {deleted} پیام پاک شد.")
+    await asyncio.sleep(3)
+    try:
+        await confirm.delete()
+    except:
+        pass
 
 
 @dp.message(F.new_chat_members)
