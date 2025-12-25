@@ -20,8 +20,8 @@ dp = Dispatcher()
 # تنظیمات قفل گروه
 # =========================
 GROUP_ID = -1003545437254
-CLOSE_FROM = time(11, 15)
-OPEN_AT = time(11, 30)
+CLOSE_FROM = time(11, 52)
+OPEN_AT = time(11, 54)
 
 
 def is_closed_now():
