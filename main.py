@@ -1,7 +1,7 @@
 import os
 import re
 import asyncio
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from aiohttp import web
 
 from aiogram import Bot, Dispatcher, F
@@ -17,15 +17,18 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 # =========================
-# تنظیمات قفل گروه
+# تنظیمات قفل گروه (به وقت تهران)
 # =========================
 GROUP_ID = -1003545437254
-CLOSE_FROM = time(11, 52)
-OPEN_AT = time(11, 54)
+
+CLOSE_FROM = time(19, 15)
+OPEN_AT   = time(19, 19)
 
 
 def is_closed_now():
-    now = datetime.utcnow().time()  # Render = UTC
+    # تبدیل UTC به تهران (UTC + 3:30)
+    now = (datetime.utcnow() + timedelta(hours=3, minutes=30)).time()
+
     if CLOSE_FROM < OPEN_AT:
         return CLOSE_FROM <= now < OPEN_AT
     else:
@@ -68,7 +71,7 @@ async def scheduler():
         except Exception as e:
             print("Scheduler error:", e)
 
-        await asyncio.sleep(60)
+        await asyncio.sleep(60)  # هر ۱ دقیقه
 
 
 # =========================
@@ -77,7 +80,7 @@ async def scheduler():
 
 @dp.message(CommandStart())
 async def start_handler(message: Message):
-    await message.answer("ربات آنلاین است ✅ (Webhook + قفل ساعتی فعال)")
+    await message.answer("ربات آنلاین است ✅")
 
 
 @dp.message(F.new_chat_members)
@@ -97,6 +100,7 @@ async def delete_links(message: Message):
     text = message.text or message.caption
     if not text:
         return
+
     if re.search(r"(https?://|www\.)", text):
         try:
             await message.delete()
@@ -116,7 +120,7 @@ async def handle_webhook(request):
 
 async def on_startup(app):
     await bot.set_webhook(WEBHOOK_URL)
-    asyncio.create_task(scheduler())  # ⬅️ قفل ساعتی
+    asyncio.create_task(scheduler())  # قفل ساعتی
     print("Webhook set:", WEBHOOK_URL)
 
 
