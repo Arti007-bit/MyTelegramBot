@@ -94,7 +94,6 @@ async def purge_messages(message: Message):
     if message.chat.type not in ["group", "supergroup"]:
         return
 
-    # فقط مدیر
     member = await bot.get_chat_member(message.chat.id, message.from_user.id)
     if member.status not in ["administrator", "creator"]:
         await message.reply("⛔ فقط مدیران می‌توانند پاکسازی انجام دهند.")
@@ -109,27 +108,61 @@ async def purge_messages(message: Message):
     if count < 1:
         return
     if count > 100:
-        count = 100  # محدودیت تلگرام
+        count = 100
 
-    deleted = 0
-    current_message_id = message.message_id
+    messages_to_delete = []
 
-    for i in range(count + 1):  # +1 برای حذف خود دستور
-        try:
-            await bot.delete_message(
-                chat_id=message.chat.id,
-                message_id=current_message_id - i
-            )
-            deleted += 1
-        except:
-            pass
+    async for msg in bot.get_chat_history(
+        chat_id=message.chat.id,
+        limit=count + 1  # خود دستور هم حذف شود
+    ):
+        messages_to_delete.append(msg.message_id)
 
-    confirm = await message.answer(f"🧹 {deleted} پیام پاک شد.")
-    await asyncio.sleep(3)
     try:
-        await confirm.delete()
+        await bot.delete_messages(
+            chat_id=message.chat.id,
+            message_ids=messages_to_delete
+        )
     except:
         pass
+
+@dp.message(F.text == "سکوت")
+async def mute_user_by_reply(message: Message):
+    # فقط در گروه
+    if message.chat.type not in ["group", "supergroup"]:
+        return
+
+    # باید ریپلای باشد
+    if not message.reply_to_message:
+        await message.reply("❗️برای سکوت باید روی پیام کاربر ریپلای کنی.")
+        return
+
+    # فقط مدیر
+    admin = await bot.get_chat_member(message.chat.id, message.from_user.id)
+    if admin.status not in ["administrator", "creator"]:
+        await message.reply("⛔ فقط مدیران می‌توانند سکوت کنند.")
+        return
+
+    target_user = message.reply_to_message.from_user
+
+    # جلوگیری از سکوت مدیر
+    target_member = await bot.get_chat_member(message.chat.id, target_user.id)
+    if target_member.status in ["administrator", "creator"]:
+        await message.reply("⛔ نمی‌توان مدیر را ساکت کرد.")
+        return
+
+    try:
+        await bot.restrict_chat_member(
+            chat_id=message.chat.id,
+            user_id=target_user.id,
+            permissions=ChatPermissions(
+                can_send_messages=False
+            )
+        )
+        await message.answer(f"🔇 {target_user.full_name} ساکت شد.")
+    except Exception as e:
+        await message.reply("❌ خطا در ساکت کردن کاربر.")
+        print(e)
 
 
 # ---------- خوش‌آمدگویی ----------
