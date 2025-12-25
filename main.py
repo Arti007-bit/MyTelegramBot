@@ -27,7 +27,7 @@ dp = Dispatcher()
 GROUP_ID = -1003545437254
 
 CLOSE_FROM = time(23, 00)
-OPEN_AT    = time(07, 00) 
+OPEN_AT    = time(7, 00) 
 
 
 def is_closed_now():
