@@ -3,11 +3,14 @@ import re
 import asyncio
 from datetime import datetime, time, timedelta
 from aiohttp import web
-from aiogram.filters import Command
 
 from aiogram import Bot, Dispatcher, F
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
 from aiogram.types import Message, ChatPermissions
+
+# =========================
+# Bot & Webhook config
+# =========================
 
 TOKEN = os.environ["TOKEN"]
 
@@ -20,10 +23,11 @@ dp = Dispatcher()
 # =========================
 # تنظیمات قفل گروه (به وقت تهران)
 # =========================
+
 GROUP_ID = -1003545437254
 
-CLOSE_FROM = time(19, 15)
-OPEN_AT   = time(19, 19)
+CLOSE_FROM = time(23, 00)
+OPEN_AT    = time(07, 00) 
 
 
 def is_closed_now():
@@ -76,53 +80,50 @@ async def scheduler():
 
 
 # =========================
-# handlers
+# Handlers
 # =========================
 
 @dp.message(CommandStart())
 async def start_handler(message: Message):
     await message.answer("ربات آنلاین است ✅")
 
+
+# ---------- پاکسازی پیام‌ها ----------
 @dp.message(Command(commands=["پاکسازی", "purge"]))
 async def purge_messages(message: Message):
-    # فقط در گروه
     if message.chat.type not in ["group", "supergroup"]:
         return
 
-    # فقط ادمین
+    # فقط مدیر
     member = await bot.get_chat_member(message.chat.id, message.from_user.id)
     if member.status not in ["administrator", "creator"]:
         await message.reply("⛔ فقط مدیران می‌توانند پاکسازی انجام دهند.")
         return
 
-    # گرفتن عدد
     args = message.text.split()
     if len(args) != 2 or not args[1].isdigit():
         await message.reply("❗️فرمت درست:\n/پاکسازی 50")
         return
 
     count = int(args[1])
-
-    # محدودیت تلگرام
     if count < 1:
         return
     if count > 100:
-        count = 100
+        count = 100  # محدودیت تلگرام
 
     deleted = 0
+    current_message_id = message.message_id
 
-    # حذف پیام دستور هم حساب می‌شود
-    async for msg in bot.get_chat_history(
-        chat_id=message.chat.id,
-        limit=count + 1
-    ):
+    for i in range(count + 1):  # +1 برای حذف خود دستور
         try:
-            await bot.delete_message(message.chat.id, msg.message_id)
+            await bot.delete_message(
+                chat_id=message.chat.id,
+                message_id=current_message_id - i
+            )
             deleted += 1
         except:
             pass
 
-    # پیام تأیید کوتاه (اختیاری)
     confirm = await message.answer(f"🧹 {deleted} پیام پاک شد.")
     await asyncio.sleep(3)
     try:
@@ -131,6 +132,7 @@ async def purge_messages(message: Message):
         pass
 
 
+# ---------- خوش‌آمدگویی ----------
 @dp.message(F.new_chat_members)
 async def welcome_handler(message: Message):
     for user in message.new_chat_members:
@@ -143,6 +145,7 @@ async def goodbye_handler(message: Message):
     await message.answer(f"👋 خداحافظ {user.full_name}")
 
 
+# ---------- حذف خودکار لینک ----------
 @dp.message(F.chat.type.in_(["group", "supergroup"]))
 async def delete_links(message: Message):
     text = message.text or message.caption
@@ -157,7 +160,7 @@ async def delete_links(message: Message):
 
 
 # =========================
-# webhook server
+# Webhook server
 # =========================
 
 async def handle_webhook(request):
@@ -168,7 +171,7 @@ async def handle_webhook(request):
 
 async def on_startup(app):
     await bot.set_webhook(WEBHOOK_URL)
-    asyncio.create_task(scheduler())  # قفل ساعتی
+    asyncio.create_task(scheduler())  # فعال‌سازی قفل ساعتی
     print("Webhook set:", WEBHOOK_URL)
 
 
