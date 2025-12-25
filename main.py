@@ -19,9 +19,9 @@ dp = Dispatcher()
 # =========================
 # تنظیمات قفل گروه
 # =========================
-GROUP_ID = -1003545437254   # آیدی عددی گروه
-CLOSE_FROM = time(09, 55)    # 09:55
-OPEN_AT = time(09, 56)        # 09:56
+GROUP_ID = -1003545437254
+CLOSE_FROM = time(11, 15)
+OPEN_AT = time(11, 30)
 
 
 def is_closed_now():
