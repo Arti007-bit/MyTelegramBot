@@ -79,41 +79,33 @@ async def scheduler():
 async def start_handler(message: Message):
     await message.answer("ربات آنلاین است ✅")
 
-# ---- تست دریافت پیام در گروه
 @dp.message(Command("test"))
 async def test_handler(message: Message):
     await message.reply("✅ پیام گروه دریافت شد")
 
-# ---- باز کردن دستی گروه
 @dp.message(Command("باز"))
 async def manual_unlock(message: Message):
     member = await bot.get_chat_member(message.chat.id, message.from_user.id)
     if member.status not in ["administrator", "creator"]:
         return
-
     await unlock_group()
     await message.reply("🔓 گروه باز شد")
 
-# ---- قفل دستی گروه
 @dp.message(Command("قفل"))
 async def manual_lock(message: Message):
     member = await bot.get_chat_member(message.chat.id, message.from_user.id)
     if member.status not in ["administrator", "creator"]:
         return
-
     await lock_group()
     await message.reply("🔒 گروه قفل شد")
 
-# ---- سکوت با ریپلای
 @dp.message(F.text == "سکوت")
 async def mute_user(message: Message):
     if not message.reply_to_message:
         return
-
     admin = await bot.get_chat_member(message.chat.id, message.from_user.id)
     if admin.status not in ["administrator", "creator"]:
         return
-
     target = message.reply_to_message.from_user
     await bot.restrict_chat_member(
         chat_id=message.chat.id,
@@ -122,30 +114,47 @@ async def mute_user(message: Message):
     )
     await message.reply(f"🔇 {target.full_name} ساکت شد")
 
-# ---- حذف لینک
 @dp.message(F.chat.type.in_(["group", "supergroup"]))
 async def delete_links(message: Message):
     text = message.text or message.caption
     if text and re.search(r"(https?://|www\.)", text):
         await message.delete()
 
-# =========================
-# خوش آمد و خداحافظی
-# =========================
-
-@dp.message()
-async def welcome_and_farewell(message: Message):
-    # اعضای جدید
-    if message.new_chat_members:
-        for user in message.new_chat_members:
-            username = f"@{user.username}" if user.username else user.full_name
-            await message.reply(f"خوش آمدی {username} 🌟")
+# ---- پاکسازی پیام‌ها توسط ادمین
+@dp.message(F.text.regexp(r"^پاکسازی\d+$"))
+async def clear_messages(message: Message):
+    # بررسی اینکه پیام از گروه باشد
+    if message.chat.type not in ["group", "supergroup"]:
+        return
     
-    # کاربری که خارج شد
-    if message.left_chat_member:
-        user = message.left_chat_member
+    # بررسی اینکه فرستنده ادمین یا سازنده باشد
+    member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+    if member.status not in ["administrator", "creator"]:
+        return
+
+    count = int(re.findall(r"\d+", message.text)[0])
+    messages_to_delete = []
+    async for msg in bot.get_chat_history(message.chat.id, limit=count):
+        messages_to_delete.append(msg.message_id)
+    for msg_id in messages_to_delete:
+        try:
+            await bot.delete_message(chat_id=message.chat.id, message_id=msg_id)
+        except Exception:
+            pass
+    await message.reply(f"✅ {count} پیام اخیر پاکسازی شد")
+
+# ---- خوش آمد و خداحافظی
+@dp.message(F.new_chat_members)
+async def welcome_new_members(message: Message):
+    for user in message.new_chat_members:
         username = f"@{user.username}" if user.username else user.full_name
-        await message.reply(f"خداحافظ {username} 👋")
+        await message.reply(f"خوش آمدی {username} 🌟")
+
+@dp.message(F.left_chat_member)
+async def farewell_member(message: Message):
+    user = message.left_chat_member
+    username = f"@{user.username}" if user.username else user.full_name
+    await message.reply(f"خداحافظ {username} 👋")
 
 # =========================
 # Webhook server (FIXED)
@@ -153,7 +162,6 @@ async def welcome_and_farewell(message: Message):
 
 async def handle_webhook(request):
     update = await request.json()
-    # 🔴 FIX اصلی: غیرمسدودکننده
     asyncio.create_task(dp.feed_webhook_update(bot, update))
     return web.Response(text="OK")
 
