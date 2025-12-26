@@ -133,22 +133,19 @@ async def delete_links(message: Message):
 # خوش آمد و خداحافظی
 # =========================
 
-# خوش آمدگویی اعضای جدید
 @dp.message()
-async def welcome_new_members(message: Message):
-    if message.new_chat_members:  # اگر کاربر جدید اضافه شد
+async def welcome_and_farewell(message: Message):
+    # اعضای جدید
+    if message.new_chat_members:
         for user in message.new_chat_members:
             username = f"@{user.username}" if user.username else user.full_name
             await message.reply(f"خوش آمدی {username} 🌟")
-
-# خداحافظی از اعضای خارج شده
-@dp.message()
-async def farewell_member(message: Message):
-    if message.left_chat_member:  # اگر کاربری گروه را ترک کرد
+    
+    # کاربری که خارج شد
+    if message.left_chat_member:
         user = message.left_chat_member
         username = f"@{user.username}" if user.username else user.full_name
         await message.reply(f"خداحافظ {username} 👋")
-
 
 # =========================
 # Webhook server (FIXED)
