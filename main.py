@@ -146,6 +146,8 @@ async def on_startup(app):
 
 async def on_shutdown(app):
     await bot.delete_webhook()
+    await bot.session.close()
+    print("Bot session closed")
 
 def main():
     app = web.Application()
@@ -156,4 +158,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
